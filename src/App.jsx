@@ -11,18 +11,38 @@ function App() {
     e.preventDefault();
     if (!prompt.trim()) return;
 
+    const apiKey = import.meta.env.VITE_GEMINI_KEY;
+    if (!apiKey) {
+      setResponse("Missing Gemini API key. Please set VITE_GEMINI_KEY in your .env file.");
+      return;
+    }
+
     setLoading(true);
     setResponse("Generating response...");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/chat", {
-        prompt,
-      });
+      const geminiRes = await axios.post(
+        "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
+        {
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ]
+        },
+        {
+          params: { key: apiKey },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      setResponse(res.data.response); // Update UI with AI response
+      const text = geminiRes.data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+      setResponse(text);
     } catch (error) {
-      console.error("Error:", error);
-      setResponse("Error fetching AI response.");
+      console.error("Gemini Error:", error);
+      setResponse("Error fetching response from Gemini.");
     } finally {
       setLoading(false);
     }
@@ -36,7 +56,7 @@ function App() {
           <div className="flex items-center gap-2">
             <MessageSquare className="w-6 h-6 text-blue-400" />
             <h1 className="text-xl md:text-2xl font-semibold text-white">
-              Deloitte
+              Gemini ChatBot
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -47,7 +67,7 @@ function App() {
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <div className="bg-white/5 backdrop-blur-lg p-4 md:p-6 min-h-[400px] flex flex-col gap-4">
           {/* Prompt Section */}
           <div className="flex-1">
@@ -73,7 +93,7 @@ function App() {
           </div>
         </div>
 
-        {/* Footer / Actions */}
+        {/* Footer */}
         <div className="bg-white/5 backdrop-blur-lg rounded-b-xl p-4 flex items-center justify-between gap-4 border-t border-white/10">
           <button
             onClick={() => {
